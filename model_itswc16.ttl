@@ -1,0 +1,1622 @@
+@prefix :        <http://e2e.ericsson.net/itswc#> .
+@prefix CloudTaxonomy:  <http://rdfs.genssiz.org/CloudTaxonomy#> .
+@prefix gr:      <http://purl.org/goodrelations/v1#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sp:      <http://spinrdf.org/sp#> .
+@prefix spin:    <http://spinrdf.org/spin#> .
+@prefix spl:     <http://spinrdf.org/spl#> .
+@prefix foaf:    <http://xmlns.com/foaf/spec/20140114.rdf> .
+@prefix usdl-core:  <http://www.linked-usdl.org/ns/usdl-core#> .
+@prefix usdl-price:  <http://www.linked-usdl.org/ns/usdl-price#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix usdl-br:  <http://www.linked-usdl.org/ns/usdl-business-roles#> .
+
+
+<http://e2e.ericsson.net/itswc> rdf:type owl:Ontology ;
+     owl:imports <https://raw.githubusercontent.com/linked-usdl/usdl-price/master/usdl-price_v2.ttl> ,
+                      <http://spinrdf.org/spin> ,
+                      <http://www.heppnetz.de/ontologies/goodrelations/v1.owl> ,
+                      <https://raw.githubusercontent.com/linked-usdl/usdl-core/master/usdl-core.ttl> ;
+#                      <http://git.cf.ericsson.net/e2e/linked-usdl-ontology/raw/master/CloudTaxonomy.ttl> ;
+     rdfs:comment "<h3>Dynamic Bus Scheduling Service</h3><p>This service offers dynamic bus scheduling to the fleet operator. It can be parametrized with number of buses, coverage area, reporting of bus location data and possibility a planning service for dynamically generating bus schedules and routes based on historic and/or real-time weather, traffic and passenger data. There are different service configurations with different cost, depending on the values of the parameters chosen. The deployment of the service includes a planning service which generates bus time-tables and routes. This software is selectively deployed in local (to the Radio Access and Core network) or remote cloud or can be distributed among multiple clouds, with different cost to suit different planning needs.</p><p>This particular service is intended for demonstration purposes.</p>";
+     rdfs:label "BusFleetManagementService"^^xsd:string.
+
+
+# Extension of USDL core
+
+:hasVariable a rdf:Property;
+    rdfs:label "hasVariable";
+    rdfs:comment "Specify the variable belongs to the service.";
+    rdfs:domain usdl-core:Service;
+    rdfs:range usdl-price:ConsumerVariable .
+
+# ------------------------------------ Business entities and providers -------------------------------------
+
+:entity_localCloud
+      rdf:type gr:BusinessEntity ;
+      foaf:name "Local (low-latency) cloud suited for online planning service" .
+
+:entity_RemoteCloud
+      rdf:type gr:BusinessEntity ;
+      foaf:name "Remote (best-effort) cloud suited for hosting software that does not require any network quality of service for communicating with mobile clients. This includes monitoring software (bus coordinate center) as well as off-line planning service" .
+
+:entity_PlanningSoftware
+      rdf:type gr:BusinessEntity ;
+      foaf:name "Planning Software which can either plan off-line bus schedules or on-line bus schedules" .
+
+:entity_CellularNetwork
+      rdf:type gr:BusinessEntity ;
+      foaf:name "Kista RAN and Core operated for MOCS team by Demo and Events" .
+
+:entity_Contextual_Data
+      rdf:type gr:BusinessEntity ;
+      foaf:name "Contextual Data, includes weather, passenger mobility and traffic. Can be historical data or real time or both" .
+
+:entity_Bus_Coordinate_Center
+      rdf:type gr:BusinessEntity ;
+      foaf:name "Software that provides fleet management functionality for bus operators (attended or automated/unattended)" .
+
+:involvement_Local_Cloud_Provider
+      rdf:type usdl-core:EntityInvolvement ;
+      usdl-core:ofBusinessEntity :entity_localCloud ;
+      usdl-core:withBusinessRole usdl-br:provider .
+
+:involvement_Remote_Cloud_Provider
+      rdf:type usdl-core:EntityInvolvement ;
+      usdl-core:ofBusinessEntity :entity_RemoteCloud ;
+      usdl-core:withBusinessRole usdl-br:provider .
+
+:involvement_Planning_Software_Provider
+      rdf:type usdl-core:EntityInvolvement ;
+      usdl-core:ofBusinessEntity :entity_PlanningSoftware ;
+      usdl-core:withBusinessRole usdl-br:provider .
+
+:involvement_Cellular_Network_Provider
+      rdf:type usdl-core:EntityInvolvement ;
+      usdl-core:ofBusinessEntity :entity_CellularNetwork ;
+      usdl-core:withBusinessRole usdl-br:provider .
+
+:involvement_Contextual_Data_Provider
+      rdf:type usdl-core:EntityInvolvement ;
+      usdl-core:ofBusinessEntity :entity_Contextual_Data ;
+      usdl-core:withBusinessRole usdl-br:provider .
+
+:involvement_Bus_Coordinate_Center_Vendor
+      rdf:type usdl-core:EntityInvolvement ;
+      usdl-core:ofBusinessEntity :entity_Bus_Coordinate_Center ;
+      usdl-core:withBusinessRole usdl-br:provider .
+
+# ---------------------------- Resources, used internally ----------------------------
+
+:Resource_num_of_buses
+    rdf:type CloudTaxonomy:Feature , rdfs:Class , gr:QuantitativeValue ;
+    rdfs:label "Number of buses (minimum of 1)"^^xsd:string ;
+    gr:hasUnitOfMeasurement
+              "C62"^^xsd:string ;
+    gr:hasValue :Variable_number_of_buses .
+
+:Resource_area_of_coverage
+    rdf:type CloudTaxonomy:Feature , rdfs:Class , gr:QuantitativeValue ;
+    rdfs:label "Area of coverage in square kilometers"^^xsd:string ;
+    gr:hasUnitOfMeasurement
+              "C62"^^xsd:string ;
+    gr:hasValue :Variable_area_of_coverage .
+
+:Resource_bus_report_interval
+    rdf:type CloudTaxonomy:Feature , rdfs:Class , gr:QualitativeValue ;
+    rdfs:label "Interval to send Bus Data (in milliseconds)"^^xsd:string ;
+    gr:hasValue :Variable_bus_report_interval .
+
+:Resource_contextual_data_sources
+    rdf:type CloudTaxonomy:Feature , rdfs:Class , gr:QualitativeValue ;
+    rdfs:label "Inclusion of data from third party data sources, to be used by planning software"^^xsd:string ;
+    gr:hasValue :Variable_contextual_data_sources .
+
+:Resource_coordination_center_configuration
+    rdf:type CloudTaxonomy:Feature , rdfs:Class , gr:QualitativeValue ;
+    rdfs:label "Configuration for attended or unattended version of Coordination Center software"^^xsd:string ;
+    gr:hasValue :Variable_coordination_center_config .
+  
+:Resource_num_of_bus_lines
+    rdf:type CloudTaxonomy:Feature , rdfs:Class , gr:QuantitativeValue ;
+    rdfs:label "Number of bus lines (minimum of 1)"^^xsd:string ;
+    gr:hasMinValue "1" ;
+    gr:hasUnitOfMeasurement
+              "C62"^^xsd:string ;
+    gr:hasValue :Variable_number_of_bus_lines .
+
+:Resource_planning_duration
+    rdf:type CloudTaxonomy:Feature , rdfs:Class , gr:QualitativeValue ;
+    rdfs:label "Interval to Run Off-Line Planning Service (in days, minimum of 1)"^^xsd:string ;
+    gr:hasValue :Variable_planning_duration .
+
+# ---------------------------- Custom properties ----------------------------
+
+:oneOf a rdf:property;
+           rdfs:domain  owl:withRestrictions;
+           rdfs:range xsd:string.
+
+:any a rdf:property;
+           rdfs:domain  owl:someValuesFrom;
+           rdfs:range xsd:string.        
+
+# ---------------------------- These Variables are Exposed to the Users ------------------------------
+
+:Variable_number_of_buses
+	rdfs:subClassOf usdl-price:PriceVariable ;
+	rdfs:subClassOf usdl-price:ComsumerVariable ;
+	rdf:type rdfs:Class , owl:Class ;
+ 	rdfs:label "number_of_buses_config"^^xsd:string ;
+   	gr:description "Maximum number of connected buses the ordered service can support (minimum of 1)"^^xsd:string ;
+   	rdfs:range  [ a                     rdfs:Datatype ;
+                      owl:onDatatype        xsd:int ;
+                      :minValue             1;
+                      :maxValue             100;
+                    ] .
+
+:Variable_number_of_bus_lines
+	rdfs:subClassOf usdl-price:PriceVariable ;
+	rdfs:subClassOf usdl-price:ComsumerVariable ;
+	rdf:type rdfs:Class , owl:Class ;
+ 	rdfs:label "bus_lines_config"^^xsd:string ;
+   	gr:description "Number of bus lines the fleet management system will support (minimum of 1)"^^xsd:string ;
+   	rdfs:range  [ a                     rdfs:Datatype ;
+                      owl:onDatatype        xsd:int ;
+                      :minValue             1;
+                      :maxValue             100;
+                    ] .
+
+:Variable_area_of_coverage
+	rdfs:subClassOf usdl-price:PriceVariable ;
+	rdfs:subClassOf usdl-price:ComsumerVariable ;
+	rdf:type rdfs:Class , owl:Class ;
+ 	rdfs:label "cell_coverage_config"^^xsd:string ;
+   	gr:description "Desired area of cellular coverage in sq. kilometers (minimum of 1)"^^xsd:string ;
+   	rdfs:range  [ a                     rdfs:Datatype ;
+                      owl:onDatatype        xsd:int ;
+                      :minValue             1;
+                      :maxValue             100;
+                    ] .
+
+:Variable_bus_report_interval
+	rdfs:subClassOf usdl-price:PriceVariable ;
+	rdfs:subClassOf usdl-price:ComsumerVariable ;
+	rdf:type rdfs:Class , owl:Class ;
+    rdfs:label "bus_data_interval_config"^^xsd:string ;
+    gr:description "Set the Interval to send Bus Data. The interval can be frequent (updates every 100ms), regular (updates every half second), or sparce (updates every second)"^^xsd:string;
+   	rdfs:range      [ a       rdfs:Datatype ;
+                        :oneOf  "Frequent_3;Regular_2;Sparse_1"^^xsd:string;
+                    ] .
+
+:Variable_planning_duration
+	rdfs:subClassOf usdl-price:PriceVariable ;
+	rdfs:subClassOf usdl-price:ComsumerVariable ;
+	rdf:type rdfs:Class , owl:Class ;
+	rdfs:label "optional_offline_planning_config"^^xsd:string ;
+   	gr:description "Choose planning service to add"^^xsd:string;
+   	rdfs:range      [ a       rdfs:Datatype ;
+                        :oneOf  "Online_4;Offline(Daily)_3;Offline(Weekly)_2;Offline(Monthly)_1"^^xsd:string;
+                    ] .
+
+:Variable_coordination_center_config
+  rdfs:subClassOf usdl-price:PriceVariable ;
+  rdfs:subClassOf usdl-price:ComsumerVariable ;
+  rdf:type rdfs:Class , owl:Class ;
+  rdfs:label "coordination_center_config"^^xsd:string ;
+    gr:description "Configure whether the coordination center will be deployed in attended or unattended fashion"^^xsd:string;
+    rdfs:range      [ a       rdfs:Datatype ;
+                        :oneOf  "Attended_2;Unattended_3;Monitor_1"^^xsd:string;
+                    ] .
+
+:Variable_contextual_data_sources
+  rdfs:subClassOf usdl-price:PriceVariable ;
+  rdfs:subClassOf usdl-price:ComsumerVariable ;
+  rdf:type rdfs:Class , owl:Class ;
+  rdfs:label "optional_bus_planning_config"^^xsd:string ;
+    gr:description "Configure which third-party data will be used to facilitate planning"^^xsd:string;
+    rdfs:range      [ a       rdfs:Datatype ;
+                        :any  "Traffic_1;Weather_1;PassengerMobility_1"^^xsd:string;
+                    ] .
+
+# ---------------------------- The Variables Below are Used for Pricing Calculation ------------------------------
+
+:Variable_price_per_bus_per_month
+	rdf:type usdl-price:Constant ;
+	rdf:type usdl-price:PriceVariable ;
+	rdf:type usdl-price:ProviderVariable ;
+	usdl-price:hasValue
+              [ rdf:type gr:QuantitativeValue ;
+                gr:hasUnitOfMeasurement
+                        "USD"^^xsd:string ;
+                gr:hasValueInteger "20000"^^xsd:int
+              ] ;
+ 	rdfs:label "Price per connected bus per month"^^xsd:string ;
+   	gr:description "Price per connected bus per month"^^xsd:string .
+
+:Variable_price_base_bus_data_interval
+  rdf:type usdl-price:Constant ;
+  rdf:type usdl-price:PriceVariable ;
+  rdf:type usdl-price:ProviderVariable ;
+  usdl-price:hasValue
+              [ rdf:type gr:QuantitativeValue ;
+                gr:hasUnitOfMeasurement
+                        "USD"^^xsd:string ;
+                gr:hasValueInteger "1000"^^xsd:int
+              ] ;
+  rdfs:label "Base price for bus data interval"^^xsd:string ;
+    gr:description "Base price for bus data interval"^^xsd:string .
+
+:Variable_price_coordination_center_base_per_month
+  rdf:type usdl-price:Constant ;
+  rdf:type usdl-price:PriceVariable ;
+  rdf:type usdl-price:ProviderVariable ;
+  usdl-price:hasValue
+              [ rdf:type gr:QuantitativeValue ;
+                gr:hasUnitOfMeasurement
+                        "USD"^^xsd:string ;
+                gr:hasValueInteger "40000"^^xsd:int
+              ] ;
+  rdfs:label "Base price for coordination center"^^xsd:string ;
+    gr:description "Base price for coordination center"^^xsd:string .
+
+ :Variable_price_per_bus_line_per_month
+  rdf:type usdl-price:Constant ;
+  rdf:type usdl-price:PriceVariable ;
+  rdf:type usdl-price:ProviderVariable ;
+  usdl-price:hasValue
+              [ rdf:type gr:QuantitativeValue ;
+                gr:hasUnitOfMeasurement
+                        "USD"^^xsd:string ;
+                gr:hasValueInteger "20000"^^xsd:int
+              ] ;
+  rdfs:label "Price per bus line per month"^^xsd:string ;
+    gr:description "Price per bus line per month"^^xsd:string .    
+
+
+ :Variable_price_per_square_kilomenter_of_coverage_per_month
+  rdf:type usdl-price:Constant ;
+  rdf:type usdl-price:PriceVariable ;
+  rdf:type usdl-price:ProviderVariable ;
+  usdl-price:hasValue
+              [ rdf:type gr:QuantitativeValue ;
+                gr:hasUnitOfMeasurement
+                        "USD"^^xsd:string ;
+                gr:hasValueInteger "20000"^^xsd:int
+              ] ;
+  rdfs:label "Price per square kilometer of cellular network coverage per month"^^xsd:string ;
+    gr:description "Price per square kilometer of cellular network coverage per month"^^xsd:string .  
+
+ :Variable_price_per_contextual_data_source_per_month_real_time
+  rdf:type usdl-price:Constant ;
+  rdf:type usdl-price:PriceVariable ;
+  rdf:type usdl-price:ProviderVariable ;
+  usdl-price:hasValue
+              [ rdf:type gr:QuantitativeValue ;
+                gr:hasUnitOfMeasurement
+                        "USD"^^xsd:string ;
+                gr:hasValueInteger "20000"^^xsd:int
+              ] ;
+  rdfs:label "Price per contextual data source per month, real time"^^xsd:string ;
+    gr:description "Price per contextual data source per month, real time"^^xsd:string .   
+
+:Variable_price_per_contextual_data_source_per_month_historical
+  rdf:type usdl-price:Constant ;
+  rdf:type usdl-price:PriceVariable ;
+  rdf:type usdl-price:ProviderVariable ;
+  usdl-price:hasValue
+              [ rdf:type gr:QuantitativeValue ;
+                gr:hasUnitOfMeasurement
+                        "USD"^^xsd:string ;
+                gr:hasValueInteger "15000"^^xsd:int
+              ] ;
+  rdfs:label "Price per contextual data source per month, historical"^^xsd:string ;
+    gr:description "Price per contextual data source per month, historical"^^xsd:string .
+
+:Variable_price_base_for_planning_service_per_month
+  rdf:type usdl-price:Constant ;
+  rdf:type usdl-price:PriceVariable ;
+  rdf:type usdl-price:ProviderVariable ;
+  usdl-price:hasValue
+              [ rdf:type gr:QuantitativeValue ;
+                gr:hasUnitOfMeasurement
+                        "USD"^^xsd:string ;
+                gr:hasValueInteger "25000"^^xsd:int
+              ] ;
+  rdfs:label "Base price for planning service per month"^^xsd:string ;
+    gr:description "Base price for planning service per month"^^xsd:string .
+
+# ------------------------- Relation for assigning price functions to services ---------------------
+
+:hasPriceFunction
+    rdfs:domain  usdl-core:Service;
+    rdfs:range  spin:Function.    
+
+# ------------------------------------------- Services, exposed to users ---------------------------------------------
+
+:Basic_connected_bus
+    rdf:type rdfs:Class , owl:Class ;
+    :hasVariable  :Variable_bus_report_interval,
+        :Variable_price_base_bus_data_interval, :Variable_area_of_coverage, :Variable_price_per_square_kilomenter_of_coverage_per_month ,
+        :Variable_number_of_buses , :Variable_price_per_bus_per_month, :Variable_number_of_bus_lines,
+        :Variable_price_per_bus_line_per_month, :Variable_price_coordination_center_base_per_month, :Variable_coordination_center_config ;
+    rdfs:subClassOf usdl-core:Service ;
+	  gr:quantitativeProductOrServiceProperty :Resource_num_of_buses,  :Resource_bus_report_interval, :Resource_number_of_busslines ;
+	  :hasPriceFunction :Function_price_basic;
+	  usdl-core:hasEntityInvolvement
+      :involvement_Cellular_Network_Provider, :involvement_Remote_Cloud_Provider, :involvement_Bus_Coordinate_Center_Vendor ;
+
+     # ----- Constraints for basic service ------
+
+     # ----- A. Coordination center should be set to "monitor", other options are available in higher-cost services
+
+     spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Coordination Center must be set to Monitor !"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_CoordinationCenter .
+    						?Variable_CoordinationCenter rdf:type :Variable_coordination_center_config.
+    						?Variable_CoordinationCenter gr:hasValue ?value .
+                            FILTER (?value > 1) .
+                        }""";
+                ]  ;
+
+     # ----- B. Number of bus lines should be at least one
+
+     spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Minimum number of bus lines is 1!"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_numOfBusLines .
+    						?Variable_numOfBusLines rdf:type :Variable_number_of_bus_lines.
+    						?Variable_numOfBusLines gr:hasValue ?value .
+                            FILTER (?value < 1) .
+                        }""";
+                ]  ;
+
+     # ----- C. Number of buses should be at least one
+
+      spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Minimum number of buses is 1!"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_numOfBuses .
+    						?Variable_numOfBuses rdf:type :Variable_number_of_buses.
+    						?Variable_numOfBuses gr:hasValue ?value .
+                            FILTER (?value < 1) .
+                        }""";
+                ] .
+
+:Premium_connected_bus
+    rdf:type rdfs:Class , owl:Class ;
+    :hasVariable  :Variable_bus_report_interval,
+                  :Variable_price_base_bus_data_interval, :Variable_area_of_coverage, :Variable_price_per_square_kilomenter_of_coverage_per_month ,
+                  :Variable_number_of_buses , :Variable_price_per_bus_per_month, :Variable_number_of_bus_lines,
+                  :Variable_price_per_bus_line_per_month, :Variable_price_coordination_center_base_per_month, :Variable_coordination_center_config ;
+    rdfs:subClassOf usdl-core:Service ;
+	  gr:quantitativeProductOrServiceProperty :Resource_num_of_buses,  :Resource_bus_report_interval, :Resource_number_of_busslines ;
+	  :hasPriceFunction :Function_price_premium;
+	  usdl-core:hasEntityInvolvement
+      :involvement_Cellular_Network_Provider, :involvement_Remote_Cloud_Provider, :involvement_Bus_Coordinate_Center_Vendor ;
+
+     # ----- Constraints for basic service ------
+
+     # ----- A. Coordination center should be set to "attended" or "unattended"
+
+     spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Coordination Center must be set to Attended or Unattended !"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_CoordinationCenter .
+    						?Variable_CoordinationCenter rdf:type :Variable_coordination_center_config.
+    						?Variable_CoordinationCenter gr:hasValue ?value .
+                            FILTER (?value < 2) .
+                        }""";
+                ]  ;
+
+     # ----- B. Number of bus lines should be at least one
+
+     spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Minimum number of bus lines is 1!"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_numOfBusLines .
+    						?Variable_numOfBusLines rdf:type :Variable_number_of_bus_lines.
+    						?Variable_numOfBusLines gr:hasValue ?value .
+                            FILTER (?value < 1) .
+                        }""";
+                ]  ;
+
+     # ----- C. Number of buses should be at least one
+
+      spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Minimum number of buses is 1!"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_numOfBuses .
+    						?Variable_numOfBuses rdf:type :Variable_number_of_buses.
+    						?Variable_numOfBuses gr:hasValue ?value .
+                            FILTER (?value < 1) .
+                        }""";
+                ] ;
+
+     # ----- D. Planning should be offline (less or equal to 3)
+
+      spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Planning should be online!"
+                        }
+                        WHERE {
+    						?this :hasVariable ?planningDuration .
+    						?planningDuration rdf:type :Variable_planning_duration.
+    						?planningDuration gr:hasValue ?value .
+                            FILTER (?value > 3) .
+                        }""";
+                ] .
+
+:Ultimate_connected_bus
+    rdf:type rdfs:Class , owl:Class ;
+    :hasVariable  :Variable_bus_report_interval,
+                  :Variable_price_base_bus_data_interval, :Variable_area_of_coverage, :Variable_price_per_square_kilomenter_of_coverage_per_month ,
+                  :Variable_number_of_buses , :Variable_price_per_bus_per_month, :Variable_number_of_bus_lines,
+                  :Variable_price_per_bus_line_per_month, :Variable_price_coordination_center_base_per_month, :Variable_coordination_center_config ;
+    rdfs:subClassOf usdl-core:Service ;
+	  gr:quantitativeProductOrServiceProperty :Resource_num_of_buses,  :Resource_bus_report_interval, :Resource_number_of_busslines ;
+	  :hasPriceFunction :Function_price_ultimate;
+	  usdl-core:hasEntityInvolvement
+      :involvement_Cellular_Network_Provider, :involvement_Remote_Cloud_Provider, :involvement_Bus_Coordinate_Center_Vendor ;
+
+     # ----- Constraints for basic service ------
+
+     # ----- A. Coordination center should be set to "attended" or "unattended"
+
+     spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Coordination Center must be set to Attended or Unattended !"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_CoordinationCenter .
+    						?Variable_CoordinationCenter rdf:type :Variable_coordination_center_config.
+    						?Variable_CoordinationCenter gr:hasValue ?value .
+                            FILTER (?value < 2) .
+                        }""";
+                ]  ;
+
+     # ----- B. Number of bus lines should be at least one
+
+     spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Minimum number of bus lines is 1!"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_numOfBusLines .
+    						?Variable_numOfBusLines rdf:type :Variable_number_of_bus_lines.
+    						?Variable_numOfBusLines gr:hasValue ?value .
+                            FILTER (?value < 1) .
+                        }""";
+                ]  ;
+
+     # ----- C. Number of buses should be at least one
+
+      spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Minimum number of buses is 1!"
+                        }
+                        WHERE {
+    						?this :hasVariable ?Variable_numOfBuses .
+    						?Variable_numOfBuses rdf:type :Variable_number_of_buses.
+    						?Variable_numOfBuses gr:hasValue ?value .
+                            FILTER (?value < 1) .
+                        }""";
+                ] ;
+
+     # ----- D. Planning should be online (4)
+
+      spin:constraint
+                [ a       sp:Construct ;
+                    sp:text """
+                        CONSTRUCT {
+                                _:violation a spin:ConstraintViolation ;
+                                spin:violationRoot ?this ;
+                                spin:violationPath :hasVariable ;
+                                spin:violationLevel spin:Warning ;
+                                rdfs:label "Planning should be online!"
+                        }
+                        WHERE {
+    						?this :hasVariable ?planningDuration .
+    						?planningDuration rdf:type :Variable_planning_duration.
+    						?planningDuration gr:hasValue ?value .
+                            FILTER (?value < 4) .
+                        }""";
+                ] .
+
+# ----------------------------------------- Price Functions for Services -----------------------------------------
+
+:Function_price_basic
+      rdfs:domain     :Basic_connected_bus;
+      rdf:type spin:Function ;
+      rdfs:label "Function to compute price of basic bus service"^^xsd:string ;
+       spin:body
+          [ rdf:type sp:Select ;
+            sp:resultVariables ([ sp:varName "price"^^xsd:string
+                      ]) ;
+            sp:where (
+
+                      # -------- Price per bus per month, assigned to variable priceForBusesPerMonth -------------
+
+                      [ sp:object
+                                [ sp:varName "a"^^xsd:string
+                                ] ;
+                        sp:predicate usdl-price:hasValue ;
+                        sp:subject :Variable_price_per_bus_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "a"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_number_of_buses ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "nrBuses"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "nrBuses"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusesPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------ Price per bus line per month, assigned to variable priceForBusLinesPerMonth ------
+
+                      [ sp:object
+                                 [ sp:varName "b"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_per_bus_line_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_line_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "b"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_number_of_bus_lines ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual2"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "nrBusLines"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual2"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "nrBusLines"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_line_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusLinesPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------------- Geographical Coverage of Cell Connection, assigned to priceOfCellCoveragePerMonth -------------
+
+                      [ sp:object
+                                 [ sp:varName "c"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_per_square_kilomenter_of_coverage_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "cellular_coverage_per_month_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "c"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_area_of_coverage ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual3"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "sqKmsOfCoverage"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual3"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "sqKmsOfCoverage"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "cellular_coverage_per_month_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceOfCellCoveragePerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # --------------- Bus Report Interval, assigned to priceForBusReportIntervalPerMonth ------------------
+
+                      [ sp:object
+                                 [ sp:varName "d"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_base_bus_data_interval
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_data_interval_base_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "d"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_bus_report_interval ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual4"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_report_interval"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual4"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "bus_report_interval"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_data_interval_base_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusReportIntervalPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # -------------------------- Coordination Center Base Price assigned to priceForCoordinationCenterPerMonth ---------------------------
+
+                      [ sp:object
+                                 [ sp:varName "e"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_coordination_center_base_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "coordination_center_base_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "e"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_coordination_center_config ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual5"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "coordination_center_multiplier"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual5"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "coordination_center_base_price"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "coordination_center_multiplier"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForCoordinationCenterPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------------- Cost Aggregation ----------------
+
+                      [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesPerMonth"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForBusLinesPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesAndBusLines"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesAndBusLines"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceOfCellCoveragePerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesBusLinesCellCoverage"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesBusLinesCellCoverage"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForBusReportIntervalPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesBusLinesCellCovBRIPerMonth"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesBusLinesCellCovBRIPerMonth"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForCoordinationCenterPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "price"^^xsd:string
+                                        ]
+                       ]
+                      )
+          ] ;
+      usdl-price:hasVariable
+              :Variable_bus_report_interval,
+              :Variable_price_base_bus_data_interval,
+              :Variable_area_of_coverage,
+              :Variable_price_per_square_kilomenter_of_coverage_per_month ,
+              :Variable_number_of_buses ,
+              :Variable_price_per_bus_per_month,
+              :Variable_number_of_bus_lines,
+              :Variable_price_per_bus_line_per_month,
+              :Variable_price_coordination_center_base_per_month,
+              :Variable_coordination_center_config .
+
+:Function_price_premium
+      rdfs:domain     :Premium_connected_bus;
+      rdf:type spin:Function ;
+      rdfs:label "Function to compute price of premium bus service"^^xsd:string ;
+       spin:body
+          [ rdf:type sp:Select ;
+            sp:resultVariables ([ sp:varName "price"^^xsd:string
+                      ]) ;
+            sp:where (
+
+                      # -------- Price per bus per month, assigned to variable priceForBusesPerMonth -------------
+
+                      [ sp:object
+                                [ sp:varName "a"^^xsd:string
+                                ] ;
+                        sp:predicate usdl-price:hasValue ;
+                        sp:subject :Variable_price_per_bus_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "a"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_number_of_buses ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "nrBuses"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "nrBuses"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusesPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------ Price per bus line per month, assigned to variable priceForBusLinesPerMonth ------
+
+                      [ sp:object
+                                 [ sp:varName "b"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_per_bus_line_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_line_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "b"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_number_of_bus_lines ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual2"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "nrBusLines"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual2"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "nrBusLines"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_line_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusLinesPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------------- Geographical Coverage of Cell Connection, assigned to priceOfCellCoveragePerMonth -------------
+
+                      [ sp:object
+                                 [ sp:varName "c"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_per_square_kilomenter_of_coverage_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "cellular_coverage_per_month_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "c"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_area_of_coverage ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual3"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "sqKmsOfCoverage"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual3"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "sqKmsOfCoverage"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "cellular_coverage_per_month_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceOfCellCoveragePerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # --------------- Bus Report Interval, assigned to priceForBusReportIntervalPerMonth ------------------
+
+                      [ sp:object
+                                 [ sp:varName "d"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_base_bus_data_interval
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_data_interval_base_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "d"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_bus_report_interval ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual4"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_report_interval"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual4"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "bus_report_interval"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_data_interval_base_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusReportIntervalPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # -------------------------- Coordination Center Base Price assigned to priceForCoordinationCenterPerMonth ---------------------------
+
+                      [ sp:object
+                                 [ sp:varName "e"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_coordination_center_base_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "coordination_center_base_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "e"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_coordination_center_config ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual5"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "coordination_center_multiplier"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual5"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "coordination_center_base_price"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "coordination_center_multiplier"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForCoordinationCenterPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # -------------------------- Planning Base Price assigned to priceForPlanningServicePerMonth ---------------------------
+
+                      [ sp:object
+                                 [ sp:varName "f"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_base_for_planning_service_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "planning_service_per_month_base_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "f"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_planning_duration ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual6"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "planning_service_multiplier"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual6"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "planning_service_per_month_base_price"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "planning_service_multiplier"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForPlanningServicePerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # -------------------------- Contextual Data Source Pricing assigned to priceForContextualData ---------------------------
+
+                      [ sp:object
+                                 [ sp:varName "g"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_per_contextual_data_source_per_month_real_time
+                      ]
+                      [ sp:object
+                                [ sp:varName "contextual_data_source_per_month_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "g"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_contextual_data_sources ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual7"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "contextual_data_source_multiplier"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual7"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "contextual_data_source_per_month_price"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "contextual_data_source_multiplier"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForContextualDataSourcesPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------------- Cost Aggregation ----------------
+
+                      [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesPerMonth"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForBusLinesPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesAndBusLines"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesAndBusLines"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceOfCellCoveragePerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesBusLinesCellCoverage"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesBusLinesCellCoverage"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForBusReportIntervalPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesBusLinesCellCovBRIPerMonth"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesBusLinesCellCovBRIPerMonth"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForCoordinationCenterPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceBBLinesCellCovBRICCenter"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceBBLinesCellCovBRICCenter"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForPlanningServicePerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceBBLCCBRICCPSPM"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceBBLinesCellCovBRICCenter"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForContextualDataSourcesPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "price"^^xsd:string
+                                        ]
+                       ]
+
+                      )
+          ] ;
+      usdl-price:hasVariable
+              :Variable_bus_report_interval,
+              :Variable_price_base_bus_data_interval,
+              :Variable_area_of_coverage,
+              :Variable_price_per_square_kilomenter_of_coverage_per_month ,
+              :Variable_number_of_buses ,
+              :Variable_price_per_bus_per_month,
+              :Variable_number_of_bus_lines,
+              :Variable_price_per_bus_line_per_month,
+              :Variable_price_coordination_center_base_per_month,
+              :Variable_coordination_center_config,
+              :Variable_planning_duration,
+              :Variable_price_base_for_planning_service_per_month,
+              :Variable_price_per_contextual_data_source_per_month_real_time,
+              :Variable_contextual_data_sources .
+
+
+:Function_price_ultimate
+      rdfs:domain     :Ultimate_connected_bus;
+      rdf:type spin:Function ;
+      rdfs:label "Function to compute price of ultimate bus service"^^xsd:string ;
+       spin:body
+          [ rdf:type sp:Select ;
+            sp:resultVariables ([ sp:varName "price"^^xsd:string
+                      ]) ;
+            sp:where (
+
+                      # -------- Price per bus per month, assigned to variable priceForBusesPerMonth -------------
+
+                      [ sp:object
+                                [ sp:varName "a"^^xsd:string
+                                ] ;
+                        sp:predicate usdl-price:hasValue ;
+                        sp:subject :Variable_price_per_bus_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "a"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_number_of_buses ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "nrBuses"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "nrBuses"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusesPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------ Price per bus line per month, assigned to variable priceForBusLinesPerMonth ------
+
+                      [ sp:object
+                                 [ sp:varName "b"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_per_bus_line_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_line_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "b"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_number_of_bus_lines ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual2"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "nrBusLines"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual2"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "nrBusLines"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_line_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusLinesPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------------- Geographical Coverage of Cell Connection, assigned to priceOfCellCoveragePerMonth -------------
+
+                      [ sp:object
+                                 [ sp:varName "c"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_per_square_kilomenter_of_coverage_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "cellular_coverage_per_month_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "c"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_area_of_coverage ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual3"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "sqKmsOfCoverage"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual3"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "sqKmsOfCoverage"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "cellular_coverage_per_month_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceOfCellCoveragePerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # --------------- Bus Report Interval, assigned to priceForBusReportIntervalPerMonth ------------------
+
+                      [ sp:object
+                                 [ sp:varName "d"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_base_bus_data_interval
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_data_interval_base_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "d"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_bus_report_interval ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual4"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "bus_report_interval"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual4"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "bus_report_interval"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "bus_data_interval_base_price"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForBusReportIntervalPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # -------------------------- Coordination Center Base Price assigned to priceForCoordinationCenterPerMonth ---------------------------
+
+                      [ sp:object
+                                 [ sp:varName "e"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_coordination_center_base_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "coordination_center_base_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "e"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_coordination_center_config ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual5"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "coordination_center_multiplier"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual5"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "coordination_center_base_price"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "coordination_center_multiplier"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForCoordinationCenterPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # -------------------------- Planning Base Price assigned to priceForPlanningServicePerMonth ---------------------------
+
+                      [ sp:object
+                                 [ sp:varName "f"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_base_for_planning_service_per_month
+                      ]
+                      [ sp:object
+                                [ sp:varName "planning_service_per_month_base_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "f"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_planning_duration ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual6"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "planning_service_multiplier"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual6"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "planning_service_per_month_base_price"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "planning_service_multiplier"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForPlanningServicePerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # -------------------------- Contextual Data Source Pricing assigned to priceForContextualData ---------------------------
+
+                      [ sp:object
+                                 [ sp:varName "g"^^xsd:string
+                                 ] ;
+                         sp:predicate usdl-price:hasValue ;
+                         sp:subject :Variable_price_per_contextual_data_source_per_month_real_time
+                      ]
+                      [ sp:object
+                                [ sp:varName "contextual_data_source_per_month_price"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValueInteger ;
+                        sp:subject
+                                [ sp:varName "g"^^xsd:string
+                                ]
+                      ]
+                      [ sp:object :Variable_contextual_data_sources ;
+                          sp:predicate rdf:type ;
+                          sp:subject
+                            [ sp:varName "variable_individual7"^^xsd:string ] ;
+                      ]
+                      [ sp:object
+                                [ sp:varName "contextual_data_source_multiplier"^^xsd:string
+                                ] ;
+                        sp:predicate gr:hasValue ;
+                        sp:subject [ sp:varName "variable_individual7"^^xsd:string ] ;
+                      ]
+                       [ rdf:type sp:Bind ;
+                        sp:expression
+                                [ rdf:type sp:mul ;
+                                  sp:arg1 [ sp:varName "contextual_data_source_per_month_price"^^xsd:string
+                                          ] ;
+                                  sp:arg2 [ sp:varName "contextual_data_source_multiplier"^^xsd:string
+                                          ]
+                                ] ;
+                        sp:variable
+                                [ sp:varName "priceForContextualDataSourcesPerMonth"^^xsd:string
+                                ]
+                      ]
+
+                      # ------------- Cost Aggregation ----------------
+
+                      [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesPerMonth"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForBusLinesPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesAndBusLines"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesAndBusLines"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceOfCellCoveragePerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesBusLinesCellCoverage"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesBusLinesCellCoverage"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForBusReportIntervalPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceForBusesBusLinesCellCovBRIPerMonth"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceForBusesBusLinesCellCovBRIPerMonth"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForCoordinationCenterPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceBBLinesCellCovBRICCenter"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceBBLinesCellCovBRICCenter"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForPlanningServicePerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "priceBBLCCBRICCPSPM"^^xsd:string
+                                        ]
+                       ]
+
+                       [ rdf:type sp:Bind ;
+                                sp:expression
+                                        [ rdf:type sp:add ;
+                                          sp:arg1 [ sp:varName "priceBBLinesCellCovBRICCenter"^^xsd:string ] ;
+                                          sp:arg2 [ sp:varName "priceForContextualDataSourcesPerMonth"^^xsd:string ] ;
+                                        ] ;
+                                sp:variable
+                                        [ sp:varName "price"^^xsd:string
+                                        ]
+                       ]
+
+                      )
+          ] ;
+      usdl-price:hasVariable
+              :Variable_bus_report_interval,
+              :Variable_price_base_bus_data_interval,
+              :Variable_area_of_coverage,
+              :Variable_price_per_square_kilomenter_of_coverage_per_month ,
+              :Variable_number_of_buses ,
+              :Variable_price_per_bus_per_month,
+              :Variable_number_of_bus_lines,
+              :Variable_price_per_bus_line_per_month,
+              :Variable_price_coordination_center_base_per_month,
+              :Variable_coordination_center_config,
+              :Variable_planning_duration,
+              :Variable_price_base_for_planning_service_per_month,
+              :Variable_price_per_contextual_data_source_per_month_real_time,
+              :Variable_contextual_data_sources .
